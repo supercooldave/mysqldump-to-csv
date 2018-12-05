@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 import fileinput
 import csv
 import sys
@@ -17,6 +18,16 @@ def is_insert(line):
     """
     return line.startswith('INSERT INTO') or False
 
+
+def get_table_name(line):
+    """
+    Returns the name of the target table of the SQL insert statement. 
+    """
+    assert line.startswith('INSERT INTO')
+    start = line.index('INTO') + 5
+    end = line.index('` VALUES ') + 1
+    return line[start:end].replace('`','').strip()
+    
 
 def get_values(line):
     """
@@ -101,12 +112,18 @@ def main():
     # listed in sys.argv[1:]
     # or stdin if no args given.
     try:
+        count = 0
         for line in fileinput.input():
             # Look for an INSERT statement and parse it.
             if is_insert(line):
-                values = get_values(line)
-                if values_sanity_check(values):
-                    parse_values(values, sys.stdout)
+                table_name = get_table_name(line)
+                file_name = table_name + ".csv"
+                print(f"Processing table ({count}): {table_name} ")
+                with open(file_name, "a+") as outfile:
+                    values = get_values(line)
+                    if values_sanity_check(values):
+                        parse_values(values, outfile)
+                count +=1
     except KeyboardInterrupt:
         sys.exit(0)
 
